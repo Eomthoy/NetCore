@@ -1,7 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
+    <PackageId>Core.Common</PackageId>
+    <Version>1.0.1</Version>
+    <Authors>Eomthoy</Authors>
+    <Company>Personal</Company>
   </PropertyGroup>
 
   <ItemGroup>

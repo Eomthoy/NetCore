@@ -22,7 +22,7 @@ namespace Core.Common.Helper
         #region 数据源：SqlServer数据库
 
         //数据库连接字符串
-        public static string connString = "";
+        public static string connString { get; set; }
 
         /// <summary>
         /// 返回单个值
