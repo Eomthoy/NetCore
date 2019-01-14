@@ -11,12 +11,12 @@ namespace Core.Common.Basics
         // 结果：
         public string Message { get; set; }
         // 摘要：请求返回数据
-        // 结果：IEnumerable<T>数据集
-        public IEnumerable<T> Data { get; set; }
+        // 结果：T
+        public T Data { get; set; }
         public AjaxResult()
         {
         }
-        public AjaxResult(IEnumerable<T> data)
+        public AjaxResult(T data)
         {
             this.IsSuccess = true;
             this.Data = data;
@@ -26,12 +26,12 @@ namespace Core.Common.Basics
             this.IsSuccess = isSuccess;
             this.Message = message;
         }
-        public AjaxResult(bool isSuccess, IEnumerable<T> data)
+        public AjaxResult(bool isSuccess, T data)
         {
             this.IsSuccess = isSuccess;
             this.Data = data;
         }
-        public AjaxResult(bool isSuccess, string message, IEnumerable<T> data)
+        public AjaxResult(bool isSuccess, string message, T data)
         {
             this.IsSuccess = isSuccess;
             this.Message = message;

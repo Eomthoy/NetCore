@@ -108,19 +108,18 @@ namespace Core.Common.Helper
         {
             try
             {
-                using (SqlConnection conn = new SqlConnection(connString))
+                SqlConnection conn = new SqlConnection(connString);
+                SqlCommand cmd = new SqlCommand(sql, conn);
+                cmd.CommandType = commandType;
+                if (parameters != null)
                 {
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
-                    {
-                        cmd.CommandType = commandType;
-                        if (parameters != null)
-                        {
-                            cmd.Parameters.AddRange(parameters);
-                        }
-                        conn.Open();
-                        return cmd.ExecuteReader(CommandBehavior.CloseConnection);
-                    }
+                    cmd.Parameters.AddRange(parameters);
                 }
+                if (conn.State != ConnectionState.Open)
+                {
+                    conn.Open();
+                }
+                return cmd.ExecuteReader(CommandBehavior.CloseConnection);
             }
             catch (Exception ex)
             {
@@ -189,10 +188,7 @@ namespace Core.Common.Helper
                 obj = data[propertyName];
                 if (obj != DBNull.Value && obj != null)
                 {
-                    while (propertyInfo.GetSetMethod() != (MethodInfo)null)
-                    {
-                        propertyInfo.SetValue(val, obj, null);
-                    }
+                    propertyInfo.SetValue(val, obj, null);
                 }
             }
             return val;
