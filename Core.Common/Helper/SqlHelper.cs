@@ -16,6 +16,8 @@ namespace Core.Common.Helper
         //数据库连接字符串
         public static string connString { get; set; }
 
+        #region 返回单个值
+
         /// <summary>
         /// 返回单个值
         /// </summary>
@@ -43,13 +45,14 @@ namespace Core.Common.Helper
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null)
+                while (ex.InnerException != null)
                 {
                     ex = ex.InnerException;
                 }
                 throw new Exception(ex.Message);
             }
         }
+        #endregion
 
         #region 增删改
         /// <summary>
