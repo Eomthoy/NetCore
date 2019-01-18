@@ -1,7 +1,7 @@
-﻿using System;
+﻿using MySql.Data.MySqlClient;
+using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Reflection;
 
 namespace Core.Common.Helper
@@ -9,13 +9,14 @@ namespace Core.Common.Helper
     /// <summary>
     /// 通用数据访问类
     /// </summary>
-    public class SqlHelper
+    public class MySqlHelper
     {
-        #region SqlServer通用数据访问类
+        #region MySql通用数据访问类
 
         //数据库连接字符串
         public static string connString { get; set; }
 
+        #region 返回单个值
         /// <summary>
         /// 返回单个值
         /// </summary>
@@ -23,13 +24,13 @@ namespace Core.Common.Helper
         /// <param name="commandType"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public static object ExecuteScalar(string sql, CommandType commandType, params SqlParameter[] parameters)
+        public static object ExecuteScalar(string sql, CommandType commandType, params MySqlParameter[] parameters)
         {
             try
             {
-                using (SqlConnection conn = new SqlConnection(connString))
+                using (MySqlConnection conn = new MySqlConnection(connString))
                 {
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (MySqlCommand cmd = new MySqlCommand(sql, conn))
                     {
                         cmd.CommandType = commandType;
                         if (parameters != null)
@@ -43,13 +44,14 @@ namespace Core.Common.Helper
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null)
+                while (ex.InnerException != null)
                 {
                     ex = ex.InnerException;
                 }
                 throw new Exception(ex.Message);
             }
         }
+        #endregion
 
         #region 增删改
         /// <summary>
@@ -59,13 +61,13 @@ namespace Core.Common.Helper
         /// <param name="commandType"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public static int Execute(string sql, CommandType commandType, params SqlParameter[] parameters)
+        public static int Execute(string sql, CommandType commandType, params MySqlParameter[] parameters)
         {
             try
             {
-                using (SqlConnection conn = new SqlConnection(connString))
+                using (MySqlConnection conn = new MySqlConnection(connString))
                 {
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (MySqlCommand cmd = new MySqlCommand(sql, conn))
                     {
                         cmd.CommandType = commandType;
                         if (parameters != null)
@@ -88,20 +90,20 @@ namespace Core.Common.Helper
         }
         #endregion
 
-        #region SqlDataReader
+        #region MySqlDataReader
         /// <summary>
-        /// 执行查询，返回SqlDataReader对象
+        /// 执行查询，返回MySqlDataReader对象
         /// </summary>
         /// <param name="sql"></param>
         /// <param name="commandType"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public static SqlDataReader ExecuteReader(string sql, CommandType commandType, params SqlParameter[] parameters)
+        public static MySqlDataReader ExecuteReader(string sql, CommandType commandType, params MySqlParameter[] parameters)
         {
             try
             {
-                SqlConnection conn = new SqlConnection(connString);
-                SqlCommand cmd = new SqlCommand(sql, conn);
+                MySqlConnection conn = new MySqlConnection(connString);
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
                 cmd.CommandType = commandType;
                 if (parameters != null)
                 {
@@ -128,9 +130,9 @@ namespace Core.Common.Helper
         /// <typeparam name="T">entity</typeparam>
         /// <param name="reader">data reader</param>
         /// <returns>entity</returns>
-        public static List<T> GetAllFromReader<T>(string sql, CommandType commandType, params SqlParameter[] parameters) where T : new()
+        public static List<T> GetAllFromReader<T>(string sql, CommandType commandType, params MySqlParameter[] parameters) where T : new()
         {
-            SqlDataReader reader = ExecuteReader(sql, commandType, parameters);
+            MySqlDataReader reader = ExecuteReader(sql, commandType, parameters);
             List<T> list = new List<T>();
             using (reader)
             {
@@ -148,9 +150,9 @@ namespace Core.Common.Helper
         /// <typeparam name="T">entity</typeparam>
         /// <param name="reader">data reader</param>
         /// <returns>entity</returns>
-        public static T GetFromReader<T>(string sql, CommandType commandType, params SqlParameter[] parameters) where T : new()
+        public static T GetFromReader<T>(string sql, CommandType commandType, params MySqlParameter[] parameters) where T : new()
         {
-            SqlDataReader reader = ExecuteReader(sql, commandType, parameters);
+            MySqlDataReader reader = ExecuteReader(sql, commandType, parameters);
             T model = new T();
             using (reader)
             {
@@ -167,7 +169,7 @@ namespace Core.Common.Helper
         /// <typeparam name="T"></typeparam>
         /// <param name="data"></param>
         /// <returns></returns>
-        private static T ReaderToEntity<T>(SqlDataReader data) where T : new()
+        private static T ReaderToEntity<T>(MySqlDataReader data) where T : new()
         {
             T val = new T();
             foreach (PropertyInfo propertyInfo in typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public))
@@ -196,11 +198,11 @@ namespace Core.Common.Helper
         /// <param name="commandType"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public static DataTable ExecuteDataTable(string sql, CommandType commandType, params SqlParameter[] parameters)
+        public static DataTable ExecuteDataTable(string sql, CommandType commandType, params MySqlParameter[] parameters)
         {
             try
             {
-                using (SqlDataAdapter adapter = new SqlDataAdapter(sql, connString))
+                using (MySqlDataAdapter adapter = new MySqlDataAdapter(sql, connString))
                 {
                     DataTable dt = new DataTable();
                     adapter.SelectCommand.CommandType = commandType;
@@ -229,7 +231,7 @@ namespace Core.Common.Helper
         /// <param name="commandType"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public static List<T> GetAll<T>(string sql, CommandType commandType, params SqlParameter[] parameters) where T : new()
+        public static List<T> GetAll<T>(string sql, CommandType commandType, params MySqlParameter[] parameters) where T : new()
         {
             try
             {
@@ -260,7 +262,7 @@ namespace Core.Common.Helper
         /// <param name="commandType"></param>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public static T Get<T>(string sql, CommandType commandType, params SqlParameter[] parameters) where T : new()
+        public static T Get<T>(string sql, CommandType commandType, params MySqlParameter[] parameters) where T : new()
         {
             try
             {
@@ -302,6 +304,10 @@ namespace Core.Common.Helper
                     object val = data[propName];
                     if (val != DBNull.Value && val != null)
                     {
+                        if (propType.Contains("bool"))
+                        {
+                            val = Convert.ToBoolean(val);
+                        }
                         propertyInfo.SetValue(model, val, null);
                     }
                 }

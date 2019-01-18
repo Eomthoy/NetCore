@@ -1,205 +1,306 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using NPOI.HSSF.UserModel;
 using System.IO;
-using NPOI.HPSF;
-using NPOI.HSSF.Util;
 using System.Data;
-using NPOI.SS.Util;
 using NPOI.SS.UserModel;
+using System.Reflection;
+using NPOI.XSSF.UserModel;
 
 namespace Core.Common.Helper
 {
     /// <summary>
-    /// 通用数据访问类
+    /// Excel数据获取
     /// </summary>
     public class ExcelHelper
     {
-        static HSSFWorkbook hssfworkbook;
+        #region Excel数据获取
 
-        public static void WirteExcel()
+        //数据所在的行数，初始值为第firstRowColumn+1行
+        private static int row = 0;
+
+        /// <summary>
+        /// 读取excel数据，返回List<T>数据集
+        /// </summary>
+        /// <typeparam name="T">entity</typeparam>
+        /// <param name="fileName">文件路径</param>
+        /// <param name="sheetName">表名，默认为第一张表</param>
+        /// <param name="firstRowColumn">列名出现的行数，默认为第一行</param>
+        /// <returns></returns>
+        public static List<T> GetAll<T>(string fileName, string sheetName = null, int firstRowColumn = 1) where T : new()
         {
-            InitializeWorkbook();
-
-            //写标题文本
-            HSSFSheet sheet1 = hssfworkbook.CreateSheet("校外人员劳务领取表") as HSSFSheet;
-            HSSFCell cellTitle = sheet1.CreateRow(0).CreateCell(0) as HSSFCell;
-            cellTitle.SetCellValue("校外人员劳务领取表");
-
-            //设置标题行样式
-            HSSFCellStyle style = (HSSFCellStyle)hssfworkbook.CreateCellStyle();
-            style.Alignment = HorizontalAlignment.Center;
-            HSSFFont font = hssfworkbook.CreateFont() as HSSFFont;
-            font.FontHeight = 20 * 20;
-            style.SetFont(font);
-
-            cellTitle.CellStyle = style;
-
-            //合并标题行
-            sheet1.AddMergedRegion(new CellRangeAddress(0, 0, 0, 9));
-
-            DataTable dt = GetData();
-            IRow row;
-            ICell cell;
-            //HSSFCellStyle celStyle = getCellStyle();
-
-            HSSFPatriarch patriarch = sheet1.CreateDrawingPatriarch() as HSSFPatriarch;
-            HSSFClientAnchor anchor;
-            HSSFSimpleShape line;
-            int rowIndex;
-            //表头数据
-            rowIndex = 1;
-            row = sheet1.CreateRow(rowIndex);
-            cell = row.CreateCell(0);
-            cell.SetCellValue("编号");
-            cell = row.CreateCell(1);
-            cell.SetCellValue("姓名");
-            cell = row.CreateCell(2);
-            cell.SetCellValue("身份证号");
-            cell = row.CreateCell(3);
-            cell.SetCellValue("工作单位");
-            cell = row.CreateCell(4);
-            cell.SetCellValue("银行卡号");
-            cell = row.CreateCell(5);
-            cell.SetCellValue("工作时间");
-            cell = row.CreateCell(6);
-            cell.SetCellValue("工作内容");
-            cell = row.CreateCell(7);
-            cell.SetCellValue("发放标准");
-            cell = row.CreateCell(8);
-            cell.SetCellValue("发放金额");
-            cell = row.CreateCell(9);
-            cell.SetCellValue("领款人签字");
-
-            for (int i = 0; i < dt.Rows.Count; i++)
+            row = firstRowColumn + 1;
+            List<T> result = new List<T>();
+            //获取原始数据
+            DataTable dt = ReadExcelToDataTable(fileName, sheetName, firstRowColumn - 1);
+            //获取所有匹配的列
+            List<string> Colums = ExistList<T>(dt, new T());
+            //数据循环赋值
+            if (Colums.Count > 0)
             {
-                //表头数据
-                rowIndex = 3 * (i + 1);
-                row = sheet1.CreateRow(rowIndex);
-
-                cell = row.CreateCell(0);
-                cell.SetCellValue("姓名");
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(1);
-                cell.SetCellValue("基本工资");
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(2);
-                cell.SetCellValue("住房公积金");
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(3);
-                cell.SetCellValue("绩效奖金");
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(4);
-                cell.SetCellValue("社保扣款");
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(5);
-                cell.SetCellValue("代扣个税");
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(6);
-                cell.SetCellValue("实发工资");
-                //cell.CellStyle = celStyle;
-
-
-                DataRow dr = dt.Rows[i];
-                //设置值和计算公式
-                row = sheet1.CreateRow(rowIndex + 1);
-                cell = row.CreateCell(0);
-                cell.SetCellValue(dr["FName"].ToString());
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(1);
-                cell.SetCellValue((double)dr["FBasicSalary"]);
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(2);
-                cell.SetCellValue((double)dr["FAccumulationFund"]);
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(3);
-                cell.SetCellValue((double)dr["FBonus"]);
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(4);
-                cell.SetCellFormula(String.Format("$B{0}*0.08", rowIndex + 2));
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(5);
-                cell.SetCellFormula(String.Format("SUM($B{0}:$D{0})*0.1", rowIndex + 2));
-                //cell.CellStyle = celStyle;
-
-                cell = row.CreateCell(6);
-                cell.SetCellFormula(String.Format("SUM($B{0}:$D{0})-SUM($E{0}:$F{0})", rowIndex + 2));
-                //cell.CellStyle = celStyle;
-
-
-                //绘制分隔线
-                //sheet1.AddMergedRegion(new Region(rowIndex + 2, 0, rowIndex + 2, 6));
-                //anchor = new HSSFClientAnchor(0, 125, 1023, 125, 0, rowIndex + 2, 6, rowIndex + 2);
-                //line = patriarch.CreateSimpleShape(anchor);
-                //line.ShapeType = HSSFSimpleShape.OBJECT_TYPE_LINE;
-                //line.LineStyle = HSSFShape.LINESTYLE_DASHGEL;
+                foreach (DataRow item in dt.Rows)
+                {
+                    T model = new T();
+                    model = AddModel<T>(item, model, Colums);
+                    result.Add(model);
+                    row++;
+                }
             }
-            WriteToFile();
+            return result;
         }
-        static DataTable GetData()
+        /// <summary>
+        /// 将excel文件内容读取到DataTable数据表中
+        /// </summary>
+        /// <param name="fileName">文件完整路径名</param>
+        /// <param name="sheetName">指定读取excel工作薄sheet的名称</param>
+        /// <param name="firstRowColumn">列名出现的行数</param>
+        /// <returns>DataTable数据表</returns>
+        public static DataTable ReadExcelToDataTable(string fileName, string sheetName, int firstRowColumn)
         {
-            DataTable dt = new DataTable();
-            dt.Columns.Add("FName", typeof(System.String));
-            dt.Columns.Add("FBasicSalary", typeof(System.Double));
-            dt.Columns.Add("FAccumulationFund", typeof(System.Double));
-            dt.Columns.Add("FBonus", typeof(System.Double));
+            //定义要返回的datatable对象
+            DataTable data = new DataTable();
+            //excel工作表
+            ISheet sheet = null;
+            try
+            {
+                if (!File.Exists(fileName))
+                {
+                    return null;
+                }
+                //根据指定路径读取文件
+                using (FileStream fs = new FileStream(fileName, FileMode.Open, FileAccess.Read))
+                {
+                    //根据文件流创建excel数据结构
+                    IWorkbook workbook = null;
+                    if (Path.GetExtension(fileName) == ".xls")
+                    {
+                        workbook = new HSSFWorkbook(fs);
+                    }
+                    else if (Path.GetExtension(fileName) == ".xlsx")
+                    {
+                        workbook = new XSSFWorkbook(fs);
+                    }
+                    //如果有指定工作表名称
+                    if (!string.IsNullOrEmpty(sheetName))
+                    {
+                        sheet = workbook.GetSheet(sheetName);
+                        //如果没有找到指定的sheetName对应的sheet，则尝试获取第一个sheet
+                        if (sheet == null)
+                        {
+                            sheet = workbook.GetSheetAt(0);
+                        }
+                    }
+                    else
+                    {
+                        //如果没有指定的sheetName，则尝试获取第一个sheet
+                        sheet = workbook.GetSheetAt(0);
+                    }
+                    if (sheet != null)
+                    {
+                        #region 获取列名
 
-            dt.Rows.Add("令狐冲", 6000, 1000, 2000);
-            dt.Rows.Add("任盈盈", 7000, 1000, 2500);
-            dt.Rows.Add("林平之", 5000, 1000, 1500);
-            dt.Rows.Add("岳灵珊", 4000, 1000, 900);
-            dt.Rows.Add("任我行", 4000, 1000, 800);
-            dt.Rows.Add("风清扬", 9000, 5000, 3000);
+                        IRow firstRow = sheet.GetRow(firstRowColumn);
+                        //一行最后一个cell的编号 即总的列数
+                        int cellCount = firstRow.LastCellNum;
+                        for (int i = firstRow.FirstCellNum; i < cellCount; ++i)
+                        {
+                            ICell cell = firstRow.GetCell(i);
+                            if (cell != null)
+                            {
+                                string cellValue = cell.StringCellValue;
+                                if (cellValue != null)
+                                {
+                                    DataColumn column = new DataColumn(cellValue);
+                                    data.Columns.Add(column);
+                                }
+                            }
+                        }
+                        #endregion
 
-            return dt;
+                        #region 获取数据
+
+                        //数据开始行(排除列名行)
+                        int startRow = firstRowColumn + 1;
+                        //最后一列的标号
+                        int rowCount = sheet.LastRowNum;
+                        //循环数据
+                        for (int i = startRow; i <= rowCount; ++i)
+                        {
+                            IRow row = sheet.GetRow(i);
+                            if (row == null) continue; //没有数据的行默认是null
+
+                            DataRow dataRow = data.NewRow();
+                            for (int j = row.FirstCellNum; j < cellCount; ++j)
+                            {
+                                if (row.GetCell(j) != null) //同理，没有数据的单元格都默认是null
+                                    dataRow[j] = row.GetCell(j).ToString();
+                            }
+                            data.Rows.Add(dataRow);
+                        }
+                        #endregion
+
+                    }
+                }
+                return data;
+            }
+            catch (Exception ex)
+            {
+                while (ex.InnerException != null)
+                {
+                    ex = ex.InnerException;
+                }
+                throw new Exception(ex.Message);
+            }
         }
-
-
-        //static HSSFCellStyle getCellStyle()
-        //{
-        //    HSSFCellStyle cellStyle = hssfworkbook.CreateCellStyle();
-        //    cellStyle.BorderBottom = HSSFCellStyle.BORDER_THIN;
-        //    cellStyle.BorderLeft = HSSFCellStyle.BORDER_THIN;
-        //    cellStyle.BorderRight = HSSFCellStyle.BORDER_THIN;
-        //    cellStyle.BorderTop = HSSFCellStyle.BORDER_THIN;
-        //    return cellStyle;
-        //}
-
-        static void WriteToFile()
+        /// <summary>
+        /// 返回一个传入的Model
+        /// </summary>
+        /// <typeparam name="Model"></typeparam>
+        /// <param name="dt">行数据源</param>
+        /// <param name="model">传入的Model</param>
+        /// <param name="Exist">当前Model中的值</param>
+        /// <returns>将行数据转化成Model返回</returns>
+        public static Model AddModel<Model>(DataRow dt, Model model, List<string> Exist)
         {
-            //Write the stream data of workbook to the root directory
-            FileStream file = new FileStream(Directory.GetCurrentDirectory() + @"/test.xls", FileMode.Create);
-            hssfworkbook.Write(file);
-            file.Close();
+            try
+            {
+                Type ModelType = typeof(Model);
+                PropertyInfo[] ModelTypeProp = ModelType.GetProperties();
+                //循环给我们要附加的列进行赋值
+                if (Exist.Count > 0)
+                {
+                    foreach (PropertyInfo propertyInfo in ModelTypeProp)
+                    {
+                        ExcelColumAttribute attribute = propertyInfo.GetCustomAttributes(false).Where(o => o.GetType() == typeof(ExcelColumAttribute)).FirstOrDefault() as ExcelColumAttribute;
+                        if (attribute != null)
+                        {
+                            if (Exist.Contains(attribute.ColumName.Trim().ToLower()) && !string.IsNullOrEmpty(dt[attribute.ColumName].ToString()))
+                            {
+                                try
+                                {
+                                    string tp = propertyInfo.PropertyType.Name;//获得对象的属性类型
+                                                                               //处理时间格式
+                                    if (tp.Contains("Nullable"))
+                                    {
+                                        Type[] TTModel = propertyInfo.PropertyType.GetGenericArguments();
+                                        string TypeName = TTModel[0].FullName.ToLower();
+                                        if (TypeName.Contains("int32"))
+                                        {
+                                            int value = Convert.ToInt32(dt[attribute.ColumName]);
+                                            propertyInfo.SetValue(model, value, null);//赋值的对象
+                                        }
+                                        else if (TypeName.Contains("datetime"))
+                                        {
+                                            DateTime value = Convert.ToDateTime(dt[attribute.ColumName]);
+                                            propertyInfo.SetValue(model, value, null);//赋值的对象
+                                        }
+                                        else if (TypeName.Contains("double"))
+                                        {
+                                            double value = Convert.ToDouble(dt[attribute.ColumName]);
+                                            propertyInfo.SetValue(model, value, null);//赋值的对象
+                                        }
+                                        else
+                                        {
+                                            string value = dt[attribute.ColumName].ToString();
+                                            if (!string.IsNullOrEmpty(value))
+                                            {
+                                                propertyInfo.SetValue(model, value, null);//赋值的对象
+                                            }
+                                        }
+                                    }
+                                    //处理bool
+                                    else if (tp.Contains("Boolean"))
+                                    {
+                                        bool value = dt[attribute.ColumName].ToString() == "真" ? true : false;
+                                        propertyInfo.SetValue(model, value, null);//赋值的对象
+                                    }
+                                    else if (tp.Trim().ToLower().Contains("int"))
+                                    {
+                                        int value = Convert.ToInt32(dt[attribute.ColumName].ToString());
+                                        propertyInfo.SetValue(model, value, null);//赋值的对象
+                                    }
+                                    else if (tp.Trim().ToLower().Contains("datetime"))
+                                    {
+                                        DateTime value = Convert.ToDateTime(dt[attribute.ColumName]);
+                                        propertyInfo.SetValue(model, value, null);//赋值的对象
+                                    }
+                                    else if (tp.Trim().ToLower().Contains("double"))
+                                    {
+                                        double value = Convert.ToDouble(dt[attribute.ColumName]);
+                                        propertyInfo.SetValue(model, value, null);//赋值的对象
+                                    }
+                                    //其他格式
+                                    else
+                                    {
+                                        string value = dt[attribute.ColumName].ToString();
+                                        propertyInfo.SetValue(model, value, null);//赋值的对象
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    throw new Exception($"第【{row}】行，【{attribute.ColumName}】数据格式错误！");
+                                }
+                            }
+                        }
+                    }
+                }
+                return model;
+            }
+            catch (Exception ex)
+            {
+                while (ex.InnerException != null)
+                {
+                    ex = ex.InnerException;
+                }
+                throw new Exception(ex.Message);
+            }
         }
-
-        static void InitializeWorkbook()
+        /// <summary>
+        /// 传入的DataTable和model的列比对 返回model中存在的列的集合
+        /// </summary>
+        /// <typeparam name="Model"></typeparam>
+        /// <param name="dt">行数据源</param>
+        /// <param name="model">传入的Model</param>
+        /// <returns> 返回model中存在的列的集合</returns>
+        public static List<string> ExistList<Model>(DataTable dt, Model model)
         {
-            hssfworkbook = new HSSFWorkbook();
+            try
+            {
+                DataColumnCollection columns = dt.Columns;
 
-            //create a entry of DocumentSummaryInformation
-            DocumentSummaryInformation dsi = PropertySetFactory.CreateDocumentSummaryInformation();
-            dsi.Company = "NPOI Team";
-            hssfworkbook.DocumentSummaryInformation = dsi;
-
-            //create a entry of SummaryInformation
-            SummaryInformation si = PropertySetFactory.CreateSummaryInformation();
-            si.Subject = "NPOI SDK Example";
-            hssfworkbook.SummaryInformation = si;
+                Type ModelType = typeof(Model);
+                PropertyInfo[] ModelTypeProp = ModelType.GetProperties();
+                //取出当前传入的Model的字段
+                List<string> NameList = new List<string>();
+                foreach (PropertyInfo item in ModelTypeProp)
+                {
+                    ExcelColumAttribute attribute = item.GetCustomAttributes(false).Where(o => o.GetType() == typeof(ExcelColumAttribute)).FirstOrDefault() as ExcelColumAttribute;
+                    if (attribute != null)
+                        NameList.Add(attribute.ColumName);
+                }
+                //取出数据库有的字段(数据库的字段必须和Model的字段一直 大小写都要一致)
+                List<string> Exist = new List<string>();
+                foreach (DataColumn item in columns)
+                {
+                    string ColumName = item.ToString();
+                    if (NameList.Contains(ColumName))
+                    {
+                        Exist.Add(ColumName);
+                    }
+                }
+                return Exist;
+            }
+            catch (Exception ex)
+            {
+                while (ex.InnerException != null)
+                {
+                    ex = ex.InnerException;
+                }
+                throw new Exception(ex.Message);
+            }
         }
+        #endregion
     }
 }
 
